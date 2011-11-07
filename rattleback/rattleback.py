@@ -1,6 +1,6 @@
 from sympy import symbols, sqrt, zeros, ccode, acos
 from sympy.physics.mechanics import (dynamicsymbols, ReferenceFrame, Vector,
-    Point, inertia, dot, cross, kinematic_equations)
+    Point, inertia, dot, cross, kinematic_equations, Kane, RigidBody)
 
 Vector.simp = False         # Prevent the use of trigsimp and simplify
 t, g = symbols('t g')        # Time and gravitational constant
@@ -55,80 +55,55 @@ partial_v_RO = [RO.vel(N).diff(ui, N) for ui in u + ua]
 
 # Set auxiliary generalized speeds to zero now that we have obtained all the
 # partials.  This only affects points P, O, and RO
-P.set_vel(N, P.vel(N).subs({ua[0]:0, ua[1]:0, ua[2]:0}))
-O.set_vel(N, O.vel(N).subs({ua[0]:0, ua[1]:0, ua[2]:0}))
-RO.set_vel(N, RO.vel(N).subs({ua[0]:0, ua[1]:0, ua[2]:0}))
+#P.set_vel(N, P.vel(N).subs({ua[0]:0, ua[1]:0, ua[2]:0}))
+#O.set_vel(N, O.vel(N).subs({ua[0]:0, ua[1]:0, ua[2]:0}))
+#RO.set_vel(N, RO.vel(N).subs({ua[0]:0, ua[1]:0, ua[2]:0}))
 
 # Angular acceleration
 R.set_ang_acc(N, ud[0]*R.x + ud[1]*R.y + ud[2]*R.z)
 
 # Acceleration of mass center
-RO.set_acc(N, cross(R.ang_acc_in(N), RO.pos_from(P))
-            + cross(R.ang_vel_in(N), cross(R.ang_vel_in(N), RO.pos_from(P))))
+#RO.set_acc(N, cross(R.ang_acc_in(N), RO.pos_from(P))
+#            + cross(R.ang_vel_in(N), cross(R.ang_vel_in(N), RO.pos_from(P))))
 
 # Forces
 F_P = sum([cf*uv for cf, uv in zip(CF, Y)])
 F_RO = m*g*Y.z
-# Generalized Active forces
-gaf_P = [dot(F_P, pv) for pv in partial_v_P]
-gaf_RO = [dot(F_RO, pv) for pv in partial_v_RO]
 
-# Generalized Inertia forces
-# First, compute R^* and T^* for the rigid body
-R_star = - m*RO.acc(N)
-T_star = - dot(R.ang_acc_in(N), I)\
-         - cross(R.ang_vel_in(N), dot(I, R.ang_vel_in(N)))
 
-# Isolate the parts that involve only time derivatives of u's
-R_star_udot = sum([R_star.diff(udi, N)*udi for udi in ud])
-T_star_udot = sum([T_star.diff(udi, N)*udi for udi in ud])
-for ui in u:
-  assert(R_star_udot.diff(ui, N) == 0)
-  assert(T_star_udot.diff(ui, N) == 0)
 
-# Isolate the parts that involve no time derivatives of u's
-R_star_other = R_star.subs({ud[0]:0, ud[1]:0, ud[2]:0})
-T_star_other = T_star.subs({ud[0]:0, ud[1]:0, ud[2]:0})
-for udi in ud:
-  assert(R_star_other.diff(udi, N) == 0)
-  assert(T_star_other.diff(udi, N) == 0)
+kindiffs = kinematic_equations(u, q[:3], 'body', 'ZXY')
+# Contact point coordinates:
+v_O_qd = qd[3]*N.x + qd[4]*N.y + cross(qd[0]*N.z + qd[1]*Y.x + q[2]*L.y, O.pos_from(P))
+kindiffs += [dot(v_O_qd - O.vel(N), N.x), dot(v_O_qd - O.vel(N), N.y)]
+Rat = RigidBody()
+Rat.mass = m
+Rat.mc = RO
+Rat.frame = R
+Rat.inertia = (I, RO)
+BL = [Rat]
+KM = Kane(N)
+KM.coords(q)
+KM.speeds(u, u_auxiliary=ua)
+KM.kindiffeq(kindiffs)
+FL = [(RO, F_RO), (P, F_P)]
+KM.kanes_equations(FL, BL)
 
-gif_udot = []     # Generalized inertia forces with udots
-gif_other = []    # Generalized inertia forces without udots
-for i in range(len(u + ua)):
-  gif_udot.append(dot(partial_w[i], T_star_udot)
-                  + dot(partial_v_RO[i], R_star_udot))
-  gif_other.append(dot(partial_w[i], T_star_other)
-                  + dot(partial_v_RO[i], R_star_other))
 
 # The first three equations of Fr + Fr^* = 0 are the dynamic equations
 # associated with the three independent generalized speeds, u0, u1, u2.  These
 # equations ultimately need to be solved for the time derivatives of the u's,
 # so with this in mind, we rearrange them as:
 # M_dyn(q) * du/dt = f_dyn(q, u)
-f_dyn = zeros(3, 1)
-M_dyn = zeros(3, 3)
-for i in range(3):
-  f_dyn[i, 0] = - gaf_P[i] - gaf_RO[i] - gif_other[i]
-  for j in range(3):
-    M_dyn[i, j] = gif_udot[i].diff(ud[j])
+f_dyn = KM.forcing
+M_dyn = KM.mass_matrix
 
 # The last three equations of Fr + Fr^* = 0 are the auxiliary dynamic equations
 # associated with the three auxiliary generalized speeds.  These equations
 # ultimately need to be solved for the constraint forces.  With this in mind we
 # rearrange them as:
 # CF = f_cf(q, u, ud)
-f_cf = zeros(3, 1)
-for i in range(3):
-  f_cf[i] = - gaf_RO[i + 3] - gif_udot[i + 3] - gif_other[i + 3]
-  assert(gaf_P[i + 3] == CF[i])
-
-# Kinematic differential equations
-# Angular coordinates:
-kindiffs = kinematic_equations(u, q[:3], 'body', 'ZXY')
-# Contact point coordinates:
-v_O_qd = qd[3]*N.x + qd[4]*N.y + cross(qd[0]*N.z + qd[1]*Y.x + q[2]*L.y, O.pos_from(P))
-kindiffs += [dot(v_O_qd - O.vel(N), N.x), dot(v_O_qd - O.vel(N), N.y)]
+f_cf = KM.auxiliary_eqs
 
 # The kinematic differential equations as constructed above are of the form:
 # M_qd * dq/dt + M_u * u = 0

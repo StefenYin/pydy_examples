@@ -22,8 +22,8 @@ int main(int argc, char *argv[]) {
 
   // Initial time and state
   simdata s = {0.0, {0.0,              // Yaw (ignorable)
-                     0.1*M_PI/180.0,   // Roll
-                     0.1*M_PI/180.0,   // Pitch
+                     0.5*M_PI/180.0,   // Roll
+                     0.5*M_PI/180.0,   // Pitch
                      0.0, 0.0,         // x, y of contact (ignorable)
                      0.0,              // u0
                      0.0,              // u1
