@@ -250,9 +250,10 @@ try:
 except AssertionError:
     print ('fr equations are not the same.')
     # see the difference
-    difference_fr = [(luke.expand() - (-stefen.expand())) for luke, stefen in zip(
-                    Fr_c, fr)]
-    print ('See the difference:\n'), difference_fr
+    difference_fr = [(luke.expand() - (-stefen.expand())).trigsimp() for luke, 
+                    stefen in zip(Fr_c, fr)]
+    print ('See the difference:\n')
+    mprint (difference_fr)
 else:
     print ('fr equations are the same')
 
@@ -294,3 +295,20 @@ except AssertionError:
     mprint(difference_fr_star_steady)
 else:
     print ('fr_star_steady equations are the same')
+
+# DIFFERENCE of fr_star_steady also exist between rollingdisc_nonminimal and 
+# rollingdisc in steady turning case with the same KanesMethod:
+
+#from rollingdisc frstar_steady[4]:
+
+# -m*r*sin(q1)**3*q0'**2 - m*r*sin(q1)**2*q0'*q2' - 
+# m*r*sin(q1)*cos(q1)**2*q0'**2 - m*r*cos(q1)**2*q0'*q2'
+# which simplified to be 
+# -m*r*sin(q1)*q0'**2 - m*r*q0'*q2'
+
+#from rollingdisc_nonminimal frstar_steady[4]:
+
+#0.0
+
+# Which means KanesMethod predicts the lateral force to be zero in 
+# rollingdisc_nonminimal case.
