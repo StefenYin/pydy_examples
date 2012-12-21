@@ -270,9 +270,10 @@ try:
 except AssertionError:
     print ('fr_star equations are not the same.')
     # see the difference
-    difference_fr_star = [(luke.expand() - (-stefen.expand())) for luke, stefen in 
-                        zip(Fr_star_c, frstar)]
-    print ('See the difference:\n'), difference_fr_star
+    difference_fr_star = [(luke.expand() - (-stefen.expand())).trigsimp() 
+                        for luke, stefen in zip(Fr_star_c, frstar)]
+    print ('See the difference:\n')
+    mprint(difference_fr_star)
 else:
     print ('fr_star equations are the same')
 
@@ -287,8 +288,9 @@ try:
 except AssertionError:
     print ('fr_star_steady equations are not the same.')
     # see the difference
-    difference_fr_star_steady = [(luke.expand() - (-stefen.expand())) for luke, 
-                                stefen in zip(Fr_star_steady, frstar_steady)]
-    print ('See the difference:\n'), difference_fr_star_steady
+    difference_fr_star_steady = [(luke.expand() - (-stefen.expand())).trigsimp() 
+                        for luke, stefen in zip(Fr_star_steady, frstar_steady)]
+    print ('See the difference:\n')
+    mprint(difference_fr_star_steady)
 else:
     print ('fr_star_steady equations are the same')
