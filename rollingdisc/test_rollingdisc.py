@@ -127,7 +127,7 @@ Note: here without dependent generalized speeds and coordinates.
 # Rigid Bodies
 #bodies
 iner_tuple = (I_C_O, O)
-disc = RigidBody('disc', O, B, m, iner_tuple)
+disc = RigidBody('disc', O, C, m, iner_tuple)
 bodyList = [disc]
 
 #generalized forces
