@@ -208,7 +208,7 @@ mprint(Fr_star); print('\n')
 mprint(frstar); print('\n')
 
 try:
-    assert Fr_star == (-frstar)
+    assert Matrix(Fr_star).expand() == (-frstar).expand()
 except AssertionError:
     print ('fr_star equations are not the same.')
     # see the difference
@@ -226,7 +226,7 @@ mprint(Fr_star_steady); print('\n')
 mprint(frstar_steady); print('\n')
 
 try:
-    assert Fr_star_steady == (-frstar_steady)
+    assert Matrix(Fr_star_steady).expand() == (-frstar_steady).expand()
 except AssertionError:
     print ('fr_star_steady equations are not the same.')
     # see the difference
